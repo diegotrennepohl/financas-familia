@@ -156,7 +156,8 @@
 <div class="tabs">
   <button class="tab active" onclick="showTab('resumo')">Resumo</button>
   <button class="tab" onclick="showTab('lancamentos')">Lançamentos</button>
-  <button class="tab" onclick="showTab('relatorios')">Relatórios</button>
+  <button class="tab" onclick="showTab('relatorios')">Rel. Origem</button>
+  <button class="tab" onclick="showTab('rel-destino')">Rel. Destino</button>
   <button class="tab" onclick="showTab('origens')">Origens</button>
   <button class="tab" onclick="showTab('destinos')">Destinos</button>
 </div>
@@ -214,6 +215,15 @@
     <div class="orig-cards" id="rel-orig-grid"><div class="empty">Nenhuma origem cadastrada</div></div>
   </div>
   <div id="rel-conteudo"></div>
+</div>
+
+<!-- RELATÓRIO POR DESTINO -->
+<div id="tab-rel-destino" class="screen">
+  <div class="card">
+    <div class="card-title">Selecione o destino</div>
+    <div class="orig-cards" id="rel-dest-grid"><div class="empty">Nenhum destino cadastrado</div></div>
+  </div>
+  <div id="rel-dest-conteudo"></div>
 </div>
 
 <!-- ORIGENS -->
@@ -314,6 +324,7 @@ const TIPO_LABELS = {cartao_credito:'Cartão de crédito',cartao_debito:'Cartão
 let now = new Date();
 let curYear = now.getFullYear(), curMonth = now.getMonth();
 let selOrigem = null;
+let selDestino = null;
 let state = { origens: [], destinos: [], lancamentos: [] };
 
 function fmt(v){ return 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -343,11 +354,12 @@ window.changeMonth = function(d){
 
 window.showTab = function(t){
   document.querySelectorAll('.tab').forEach((b,i)=>{
-    b.classList.toggle('active',['resumo','lancamentos','relatorios','origens','destinos'][i]===t);
+    b.classList.toggle('active',['resumo','lancamentos','relatorios','rel-destino','origens','destinos'][i]===t);
   });
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
   if(t==='relatorios') renderRelatorios();
+  if(t==='rel-destino') renderRelatoriosDestino();
 };
 
 window.toggleOrigemField = function(){
@@ -414,6 +426,103 @@ window.selectOrigem = function(id){
   selOrigem = selOrigem===id ? null : id;
   renderRelatorios();
 };
+
+window.selectDestino = function(id){
+  selDestino = selDestino===id ? null : id;
+  renderRelatoriosDestino();
+};
+
+function renderRelatoriosDestino(){
+  const grid=document.getElementById('rel-dest-grid');
+  if(!state.destinos.length){
+    grid.innerHTML='<div class="empty">Nenhum destino cadastrado</div>';
+    document.getElementById('rel-dest-conteudo').innerHTML='';
+    return;
+  }
+  const todosLs=getLancamentosMes().filter(l=>l.tipo==='despesa');
+  grid.innerHTML=state.destinos.map(d=>{
+    const ls=todosLs.filter(l=>l.destino===d.id);
+    const total=ls.reduce((s,l)=>s+l.valor,0);
+    const isSel=selDestino===d.id;
+    return `<div class="orig-card ${isSel?'selected':''}" onclick="selectDestino('${d.id}')">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <div class="dot" style="background:${d.cor}"></div>
+        <div class="orig-card-name" style="color:${isSel?'var(--blue)':'var(--text)'}">${d.nome}</div>
+      </div>
+      <div class="orig-card-tipo">${CAT_LABELS[d.cat]||d.cat}</div>
+      <div class="orig-card-valor" style="color:${d.cor}">${fmt(total)}</div>
+      <div class="orig-card-count">${ls.length} lançamento(s)</div>
+    </div>`;
+  }).join('');
+
+  const cont=document.getElementById('rel-dest-conteudo');
+  if(!selDestino){cont.innerHTML='';return;}
+  const dest=state.destinos.find(d=>d.id===selDestino);
+  if(!dest){cont.innerHTML='';return;}
+
+  const ls=todosLs.filter(l=>l.destino===selDestino).sort((a,b)=>b.data.localeCompare(a.data));
+  const total=ls.reduce((s,l)=>s+l.valor,0);
+
+  const byOrigem={};
+  ls.forEach(l=>{
+    const o=state.origens.find(o=>o.id===l.origem);
+    const k=o?o.id:'__sem__', nome=o?o.nome:'Sem origem', cor=o?o.cor:'#7a7870';
+    byOrigem[k]=byOrigem[k]||{nome,cor,total:0,count:0};
+    byOrigem[k].total+=l.valor; byOrigem[k].count++;
+  });
+  const origEntries=Object.values(byOrigem).sort((a,b)=>b.total-a.total);
+  const maxVal=origEntries[0]?.total||1;
+
+  cont.innerHTML=`
+    <div class="card">
+      <div class="fatura-header">
+        <div class="fatura-icon" style="background:${dest.cor}22">
+          <div class="dot" style="background:${dest.cor};width:14px;height:14px"></div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:600">${dest.nome}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${CAT_LABELS[dest.cat]||dest.cat} · ${MONTHS[curMonth]} ${curYear}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="fatura-total-label">Total gasto</div>
+          <div class="fatura-total-val" style="color:${dest.cor}">${fmt(total)}</div>
+        </div>
+      </div>
+
+      ${origEntries.length?`
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px">
+        <div class="card-title">Distribuição por origem de pagamento</div>
+        <div class="bar-wrap">
+          ${origEntries.map(e=>`
+          <div class="bar-row">
+            <div class="bar-label">${e.nome} <span style="color:var(--text-hint)">(${e.count}x)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(e.total/maxVal*100).toFixed(1)}%;background:${e.cor}"></div></div>
+            <div class="bar-val">${fmt(e.total)}</div>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div class="card-title">Detalhamento das compras</div>
+        ${ls.length ? ls.map(l=>{
+          const orig=state.origens.find(o=>o.id===l.origem);
+          const dStr=new Date(l.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+          return `<div class="detail-row">
+            <span class="detail-date">${dStr}</span>
+            <span class="detail-desc">${l.desc}</span>
+            ${orig?`<span style="background:${orig.cor}22;color:${orig.cor};font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500;flex-shrink:0">${orig.nome}</span>`:''}
+            <span class="detail-val">${fmt(l.valor)}</span>
+            <button class="del-btn" onclick="delLancamento('${l.id}')">&#215;</button>
+          </div>`;
+        }).join('') : '<div class="empty">Nenhum lançamento neste destino neste mês</div>'}
+        ${ls.length?`
+        <div class="detail-total-row">
+          <span>${ls.length} compra(s)</span>
+          <span style="color:${dest.cor};font-family:'DM Mono',monospace">${fmt(total)}</span>
+        </div>`:''}
+      </div>
+    </div>`;
+}
 
 function getLancamentosMes(){
   return state.lancamentos.filter(l=>{
@@ -648,6 +757,8 @@ function renderAll(){
   renderDestinos();
   const relTab=document.getElementById('tab-relatorios');
   if(relTab.classList.contains('active')) renderRelatorios();
+  const relDestTab=document.getElementById('tab-rel-destino');
+  if(relDestTab.classList.contains('active')) renderRelatoriosDestino();
 }
 
 document.getElementById('l-data').value=now.toISOString().split('T')[0];
