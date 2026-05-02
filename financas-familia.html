@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finanças Família</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --border: #e5e3dc;
+    --border-strong: #ccc9be;
+    --text: #1a1916;
+    --text-muted: #7a7870;
+    --text-hint: #b0ada4;
+    --green: #1d7a4f;
+    --green-bg: #e8f5ee;
+    --red: #c0392b;
+    --red-bg: #fdf0ee;
+    --amber: #9a6200;
+    --amber-bg: #fdf3dc;
+    --blue: #1a5fa8;
+    --blue-bg: #e8f0fb;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-left h1 { font-size: 17px; font-weight: 600; }
+  .header-left p { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .month-nav { display: flex; align-items: center; gap: 8px; }
+  .month-nav button { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 10px; cursor: pointer; font-size: 13px; color: var(--text); }
+  .month-nav button:hover { background: var(--bg); }
+  .month-nav span { font-size: 14px; font-weight: 500; min-width: 120px; text-align: center; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; }
+  .tab { padding: 12px 14px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--text-muted); border-bottom: 2px solid transparent; white-space: nowrap; transition: all .15s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* LAYOUT */
+  .screen { display: none; padding: 20px 16px; max-width: 700px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* CARDS MÉTRICAS */
+  .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  @media(min-width:500px){ .metrics { grid-template-columns: repeat(4, 1fr); } }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  .metric-value { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .metric-value.green { color: var(--green); }
+  .metric-value.red { color: var(--red); }
+  .metric-value.amber { color: var(--amber); }
+
+  /* CARDS GERAIS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+
+  /* FORMULÁRIOS */
+  .form-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .form-row:last-child { margin-bottom: 0; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
+  .field label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+  .field input, .field select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--border-strong); background: #fff; }
+
+  /* BOTÕES */
+  .btn { padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all .15s; }
+  .btn:hover { background: var(--bg); }
+  .btn.primary { background: var(--text); color: var(--surface); border-color: transparent; }
+  .btn.primary:hover { opacity: .85; }
+  .btn-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+
+  /* LISTA DE ITENS */
+  .list-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .list-item:last-child { border-bottom: none; }
+  .del-btn { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--text-hint); font-size: 18px; flex-shrink: 0; padding: 2px 6px; border-radius: 6px; }
+  .del-btn:hover { color: var(--red); background: var(--red-bg); }
+
+  /* BADGE / TAG */
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .tag.receita { background: var(--green-bg); color: var(--green); }
+  .tag.despesa { background: var(--red-bg); color: var(--red); }
+  .tag.cc { background: var(--blue-bg); color: var(--blue); }
+
+  /* BARRAS */
+  .bar-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .bar-label { min-width: 120px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+  .bar-track { flex: 1; height: 7px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+  .bar-val { min-width: 90px; text-align: right; font-weight: 600; font-size: 12px; font-family: 'DM Mono', monospace; }
+
+  /* RELATÓRIO */
+  .orig-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; margin-bottom: 16px; }
+  .orig-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all .15s; background: var(--surface); }
+  .orig-card:hover { border-color: var(--border-strong); }
+  .orig-card.selected { border: 2px solid #1a5fa8; background: var(--blue-bg); }
+  .orig-card-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .orig-card-tipo { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+  .orig-card-valor { font-size: 17px; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .orig-card-count { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .fatura-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+  .fatura-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 600; font-size: 15px; }
+  .fatura-total-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+  .fatura-total-val { font-size: 24px; font-weight: 600; font-family: 'DM Mono', monospace; }
+
+  .detail-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-date { font-size: 11px; color: var(--text-muted); flex-shrink: 0; min-width: 34px; }
+  .detail-desc { flex: 1; }
+  .detail-val { font-weight: 600; font-family: 'DM Mono', monospace; flex-shrink: 0; min-width: 90px; text-align: right; }
+  .detail-total-row { display: flex; justify-content: space-between; padding: 10px 0 2px; border-top: 1px solid var(--border-strong); font-size: 13px; font-weight: 600; margin-top: 4px; }
+
+  /* LOADING / STATUS */
+  .loading { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 14px; }
+  .empty { text-align: center; padding: 2rem; color: var(--text-hint); font-size: 13px; }
+  .status-bar { background: var(--amber-bg); border: 1px solid #e6c96a; border-radius: var(--radius-sm); padding: 8px 14px; font-size: 12px; color: var(--amber); margin-bottom: 12px; display: none; }
+  .status-bar.show { display: block; }
+
+  /* CÍRCULO ORIGEM */
+  .orig-circle { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <p>controle</p>
+    <h1>Finanças Família</h1>
+  </div>
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">&#8592;</button>
+    <span id="month-label">—</span>
+    <button onclick="changeMonth(1)">&#8594;</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('resumo')">Resumo</button>
+  <button class="tab" onclick="showTab('lancamentos')">Lançamentos</button>
+  <button class="tab" onclick="showTab('relatorios')">Relatórios</button>
+  <button class="tab" onclick="showTab('origens')">Origens</button>
+  <button class="tab" onclick="showTab('destinos')">Destinos</button>
+</div>
+
+<!-- RESUMO -->
+<div id="tab-resumo" class="screen active">
+  <div class="status-bar" id="status-bar">Sincronizando com a nuvem...</div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Receitas</div><div class="metric-value green" id="s-receitas">R$ 0,00</div></div>
+    <div class="metric"><div class="metric-label">Despesas</div><div class="metric-value red" id="s-despesas">R$ 0,00</div></div>
+    <div class="metric"><div class="metric-label">No cartão</div><div class="metric-value amber" id="s-cartao">R$ 0,00</div></div>
+    <div class="metric"><div class="metric-label">Saldo</div><div class="metric-value" id="s-saldo">R$ 0,00</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Despesas por destino</div>
+    <div class="bar-wrap" id="bar-destinos"><div class="empty">Sem lançamentos neste mês</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Últimos lançamentos</div>
+    <div id="recent-list"><div class="empty">Sem lançamentos neste mês</div></div>
+  </div>
+</div>
+
+<!-- LANÇAMENTOS -->
+<div id="tab-lancamentos" class="screen">
+  <div class="card">
+    <div class="card-title">Novo lançamento</div>
+    <div class="form-row">
+      <div class="field" style="flex:2;min-width:160px"><label>Descrição</label><input id="l-desc" type="text" placeholder="Ex: Compras no mercado"></div>
+      <div class="field"><label>Valor (R$)</label><input id="l-valor" type="number" placeholder="0,00" min="0" step="0.01"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Tipo</label><select id="l-tipo" onchange="toggleOrigemField()"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
+      <div class="field" id="origem-field"><label>Origem (pagamento)</label><select id="l-origem"><option value="">— Selecione —</option></select></div>
+      <div class="field"><label>Destino</label><select id="l-destino"><option value="">— Selecione —</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Data</label><input id="l-data" type="date"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn primary" onclick="addLancamento()">+ Adicionar</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">Lançamentos do mês</div>
+      <span id="count-label" style="font-size:12px;color:var(--text-muted)"></span>
+    </div>
+    <div id="lancamentos-list"><div class="empty">Nenhum lançamento ainda</div></div>
+  </div>
+</div>
+
+<!-- RELATÓRIOS -->
+<div id="tab-relatorios" class="screen">
+  <div class="card">
+    <div class="card-title">Selecione a origem</div>
+    <div class="orig-cards" id="rel-orig-grid"><div class="empty">Nenhuma origem cadastrada</div></div>
+  </div>
+  <div id="rel-conteudo"></div>
+</div>
+
+<!-- ORIGENS -->
+<div id="tab-origens" class="screen">
+  <div class="card">
+    <div class="card-title">Nova origem de pagamento</div>
+    <div class="form-row">
+      <div class="field" style="flex:2;min-width:160px"><label>Nome</label><input id="o-nome" type="text" placeholder="Ex: Sicredi Diego, Nubank..."></div>
+      <div class="field"><label>Tipo</label>
+        <select id="o-tipo">
+          <option value="cartao_credito">Cartão de crédito</option>
+          <option value="cartao_debito">Cartão de débito</option>
+          <option value="pix">Pix / Transferência</option>
+          <option value="dinheiro">Dinheiro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Cor de identificação</label>
+        <select id="o-cor">
+          <option value="#1a5fa8">Azul</option>
+          <option value="#1d7a4f">Verde</option>
+          <option value="#c0392b">Vermelho</option>
+          <option value="#9a6200">Âmbar</option>
+          <option value="#6b4fa8">Roxo</option>
+          <option value="#7a7870">Cinza</option>
+          <option value="#c0552b">Coral</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end"><button class="btn primary" onclick="addOrigem()">+ Adicionar</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Origens cadastradas</div>
+    <div id="origens-list"><div class="empty">Nenhuma origem cadastrada</div></div>
+  </div>
+</div>
+
+<!-- DESTINOS -->
+<div id="tab-destinos" class="screen">
+  <div class="card">
+    <div class="card-title">Novo destino / categoria</div>
+    <div class="form-row">
+      <div class="field" style="flex:2;min-width:160px"><label>Nome</label><input id="d-nome" type="text" placeholder="Ex: Mercado, Farmácia, Escola..."></div>
+      <div class="field"><label>Categoria</label>
+        <select id="d-cat">
+          <option value="alimentacao">Alimentação</option>
+          <option value="saude">Saúde</option>
+          <option value="educacao">Educação</option>
+          <option value="lazer">Lazer</option>
+          <option value="transporte">Transporte</option>
+          <option value="moradia">Moradia</option>
+          <option value="outros">Outros</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Cor de identificação</label>
+        <select id="d-cor">
+          <option value="#1d7a4f">Verde</option>
+          <option value="#1a5fa8">Azul</option>
+          <option value="#c0392b">Vermelho</option>
+          <option value="#9a6200">Âmbar</option>
+          <option value="#c0552b">Coral</option>
+          <option value="#7a7870">Cinza</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end"><button class="btn primary" onclick="addDestino()">+ Adicionar</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Destinos cadastrados</div>
+    <div id="destinos-list"><div class="empty">Nenhum destino cadastrado</div></div>
+  </div>
+</div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCg1tMeIOh6f5QVBqnfdYCU6h42G_wMuOQ",
+  authDomain: "financas-familia-3f672.firebaseapp.com",
+  projectId: "financas-familia-3f672",
+  storageBucket: "financas-familia-3f672.firebasestorage.app",
+  messagingSenderId: "399049643365",
+  appId: "1:399049643365:web:a2ceb936deb888315f3d8c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CAT_LABELS = {alimentacao:'Alimentação',saude:'Saúde',educacao:'Educação',lazer:'Lazer',transporte:'Transporte',moradia:'Moradia',outros:'Outros'};
+const TIPO_LABELS = {cartao_credito:'Cartão de crédito',cartao_debito:'Cartão de débito',pix:'Pix / Transferência',dinheiro:'Dinheiro'};
+
+let now = new Date();
+let curYear = now.getFullYear(), curMonth = now.getMonth();
+let selOrigem = null;
+let state = { origens: [], destinos: [], lancamentos: [] };
+
+function fmt(v){ return 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function showStatus(msg){ const b=document.getElementById('status-bar'); b.textContent=msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),2500); }
+
+// LISTENERS TEMPO REAL
+onSnapshot(query(collection(db,'origens')), snap => {
+  state.origens = snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderAll();
+});
+onSnapshot(query(collection(db,'destinos')), snap => {
+  state.destinos = snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderAll();
+});
+onSnapshot(query(collection(db,'lancamentos')), snap => {
+  state.lancamentos = snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderAll();
+});
+
+// FUNÇÕES GLOBAIS
+window.changeMonth = function(d){
+  curMonth+=d;
+  if(curMonth>11){curMonth=0;curYear++;}
+  if(curMonth<0){curMonth=11;curYear--;}
+  renderAll();
+};
+
+window.showTab = function(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>{
+    b.classList.toggle('active',['resumo','lancamentos','relatorios','origens','destinos'][i]===t);
+  });
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='relatorios') renderRelatorios();
+};
+
+window.toggleOrigemField = function(){
+  const t=document.getElementById('l-tipo').value;
+  document.getElementById('origem-field').style.display=t==='receita'?'none':'flex';
+};
+
+window.addOrigem = async function(){
+  const nome=document.getElementById('o-nome').value.trim();
+  const tipo=document.getElementById('o-tipo').value;
+  const cor=document.getElementById('o-cor').value;
+  if(!nome) return alert('Informe o nome da origem.');
+  const id = Date.now().toString();
+  await setDoc(doc(db,'origens',id),{nome,tipo,cor});
+  document.getElementById('o-nome').value='';
+  showStatus('Origem salva na nuvem!');
+};
+
+window.delOrigem = async function(id){
+  if(!confirm('Remover esta origem?')) return;
+  await deleteDoc(doc(db,'origens',id));
+  if(selOrigem===id) selOrigem=null;
+};
+
+window.addDestino = async function(){
+  const nome=document.getElementById('d-nome').value.trim();
+  const cat=document.getElementById('d-cat').value;
+  const cor=document.getElementById('d-cor').value;
+  if(!nome) return alert('Informe o nome do destino.');
+  const id = Date.now().toString();
+  await setDoc(doc(db,'destinos',id),{nome,cat,cor});
+  document.getElementById('d-nome').value='';
+  showStatus('Destino salvo na nuvem!');
+};
+
+window.delDestino = async function(id){
+  if(!confirm('Remover este destino?')) return;
+  await deleteDoc(doc(db,'destinos',id));
+};
+
+window.addLancamento = async function(){
+  const desc=document.getElementById('l-desc').value.trim();
+  const valor=parseFloat(document.getElementById('l-valor').value);
+  const tipo=document.getElementById('l-tipo').value;
+  const origem=document.getElementById('l-origem').value;
+  const destino=document.getElementById('l-destino').value;
+  const data=document.getElementById('l-data').value;
+  if(!desc) return alert('Informe a descrição.');
+  if(!valor||valor<=0) return alert('Informe um valor válido.');
+  if(!data) return alert('Informe a data.');
+  const id = Date.now().toString();
+  await setDoc(doc(db,'lancamentos',id),{desc,valor,tipo,origem,destino,data});
+  document.getElementById('l-desc').value='';
+  document.getElementById('l-valor').value='';
+  showStatus('Lançamento salvo na nuvem!');
+};
+
+window.delLancamento = async function(id){
+  if(!confirm('Remover este lançamento?')) return;
+  await deleteDoc(doc(db,'lancamentos',id));
+};
+
+window.selectOrigem = function(id){
+  selOrigem = selOrigem===id ? null : id;
+  renderRelatorios();
+};
+
+function getLancamentosMes(){
+  return state.lancamentos.filter(l=>{
+    const d=new Date(l.data+'T00:00:00');
+    return d.getFullYear()===curYear && d.getMonth()===curMonth;
+  }).sort((a,b)=>b.data.localeCompare(a.data));
+}
+
+function populateSelects(){
+  const os=document.getElementById('l-origem'), ov=os.value;
+  os.innerHTML='<option value="">— Selecione —</option>';
+  state.origens.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=o.nome;os.appendChild(opt);});
+  os.value=ov;
+  const ds=document.getElementById('l-destino'), dv=ds.value;
+  ds.innerHTML='<option value="">— Selecione —</option>';
+  state.destinos.forEach(d=>{const opt=document.createElement('option');opt.value=d.id;opt.textContent=d.nome;ds.appendChild(opt);});
+  ds.value=dv;
+}
+
+function renderResumo(){
+  const ls=getLancamentosMes();
+  let receitas=0,despesas=0,cartao=0;
+  ls.forEach(l=>{
+    if(l.tipo==='receita') receitas+=l.valor;
+    else {
+      despesas+=l.valor;
+      const o=state.origens.find(o=>o.id===l.origem);
+      if(o&&o.tipo==='cartao_credito') cartao+=l.valor;
+    }
+  });
+  const saldo=receitas-despesas;
+  document.getElementById('s-receitas').textContent=fmt(receitas);
+  document.getElementById('s-despesas').textContent=fmt(despesas);
+  document.getElementById('s-cartao').textContent=fmt(cartao);
+  const sel=document.getElementById('s-saldo');
+  sel.textContent=fmt(saldo);
+  sel.className='metric-value '+(saldo>=0?'green':'red');
+
+  const byDest={};
+  ls.filter(l=>l.tipo==='despesa').forEach(l=>{
+    const d=state.destinos.find(d=>d.id===l.destino);
+    const k=d?d.id:'__sem__', nome=d?d.nome:'Sem destino', cor=d?d.cor:'#7a7870';
+    byDest[k]=byDest[k]||{nome,cor,total:0};
+    byDest[k].total+=l.valor;
+  });
+  const destEntries=Object.values(byDest).sort((a,b)=>b.total-a.total);
+  const maxVal=destEntries[0]?.total||1;
+  const barEl=document.getElementById('bar-destinos');
+  if(!destEntries.length){barEl.innerHTML='<div class="empty">Sem lançamentos neste mês</div>';return;}
+  barEl.innerHTML=destEntries.map(e=>`
+    <div class="bar-row">
+      <div class="bar-label">${e.nome}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(e.total/maxVal*100).toFixed(1)}%;background:${e.cor}"></div></div>
+      <div class="bar-val">${fmt(e.total)}</div>
+    </div>`).join('');
+
+  const rec=ls.slice(0,6);
+  const recEl=document.getElementById('recent-list');
+  if(!rec.length){recEl.innerHTML='<div class="empty">Sem lançamentos neste mês</div>';return;}
+  recEl.innerHTML=rec.map(l=>{
+    const dest=state.destinos.find(d=>d.id===l.destino);
+    const orig=state.origens.find(o=>o.id===l.origem);
+    const dStr=new Date(l.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    return `<div class="list-item">
+      <div style="width:4px;height:34px;border-radius:2px;background:${l.tipo==='receita'?'#1d7a4f':'#c0392b'};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.desc}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${dStr}${dest?' · '+dest.nome:''}${orig?' · '+orig.nome:''}</div>
+      </div>
+      <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${l.tipo==='receita'?'var(--green)':'var(--red)'}">
+        ${l.tipo==='receita'?'+':'-'}${fmt(l.valor)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderLancamentos(){
+  const ls=getLancamentosMes();
+  document.getElementById('count-label').textContent=ls.length+' registro(s)';
+  const el=document.getElementById('lancamentos-list');
+  if(!ls.length){el.innerHTML='<div class="empty">Nenhum lançamento ainda</div>';return;}
+  el.innerHTML=ls.map(l=>{
+    const dest=state.destinos.find(d=>d.id===l.destino);
+    const orig=state.origens.find(o=>o.id===l.origem);
+    const dStr=new Date(l.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    return `<div class="list-item">
+      <div style="width:4px;height:36px;border-radius:2px;background:${l.tipo==='receita'?'#1d7a4f':'#c0392b'};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500">${l.desc}</div>
+        <div style="font-size:11px;color:var(--text-muted);display:flex;gap:6px;flex-wrap:wrap;margin-top:3px">
+          <span>${dStr}</span>
+          ${dest?`<span style="background:${dest.cor}22;color:${dest.cor};padding:1px 6px;border-radius:10px;font-weight:500">${dest.nome}</span>`:''}
+          ${orig?`<span style="background:${orig.cor}22;color:${orig.cor};padding:1px 6px;border-radius:10px;font-weight:500">${orig.nome}</span>`:''}
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${l.tipo==='receita'?'var(--green)':'var(--red)'}">
+          ${l.tipo==='receita'?'+':'-'}${fmt(l.valor)}
+        </div>
+        <button class="del-btn" onclick="delLancamento('${l.id}')">&#215;</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRelatorios(){
+  const grid=document.getElementById('rel-orig-grid');
+  if(!state.origens.length){
+    grid.innerHTML='<div class="empty">Nenhuma origem cadastrada</div>';
+    document.getElementById('rel-conteudo').innerHTML='';
+    return;
+  }
+  grid.innerHTML=state.origens.map(o=>{
+    const ls=getLancamentosMes().filter(l=>l.tipo==='despesa'&&l.origem===o.id);
+    const total=ls.reduce((s,l)=>s+l.valor,0);
+    const isSel=selOrigem===o.id;
+    return `<div class="orig-card ${isSel?'selected':''}" onclick="selectOrigem('${o.id}')">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <div class="dot" style="background:${o.cor}"></div>
+        <div class="orig-card-name" style="color:${isSel?'var(--blue)':'var(--text)'}">${o.nome}</div>
+      </div>
+      <div class="orig-card-tipo">${TIPO_LABELS[o.tipo]||o.tipo}</div>
+      <div class="orig-card-valor" style="color:${o.tipo==='cartao_credito'?'var(--amber)':'var(--red)'}">${fmt(total)}</div>
+      <div class="orig-card-count">${ls.length} lançamento(s)</div>
+    </div>`;
+  }).join('');
+
+  const cont=document.getElementById('rel-conteudo');
+  if(!selOrigem){cont.innerHTML='';return;}
+  const orig=state.origens.find(o=>o.id===selOrigem);
+  if(!orig){cont.innerHTML='';return;}
+
+  const ls=getLancamentosMes().filter(l=>l.tipo==='despesa'&&l.origem===selOrigem).sort((a,b)=>b.data.localeCompare(a.data));
+  const total=ls.reduce((s,l)=>s+l.valor,0);
+
+  const byDest={};
+  ls.forEach(l=>{
+    const d=state.destinos.find(d=>d.id===l.destino);
+    const k=d?d.id:'__sem__', nome=d?d.nome:'Sem destino', cor=d?d.cor:'#7a7870';
+    byDest[k]=byDest[k]||{nome,cor,total:0,count:0};
+    byDest[k].total+=l.valor; byDest[k].count++;
+  });
+  const destEntries=Object.values(byDest).sort((a,b)=>b.total-a.total);
+  const maxVal=destEntries[0]?.total||1;
+  const isCC=orig.tipo==='cartao_credito';
+
+  cont.innerHTML=`
+    <div class="card">
+      <div class="fatura-header">
+        <div class="fatura-icon" style="background:${orig.cor}22">
+          <div class="dot" style="background:${orig.cor};width:14px;height:14px"></div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:600">${orig.nome}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${TIPO_LABELS[orig.tipo]} · ${MONTHS[curMonth]} ${curYear}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="fatura-total-label">${isCC?'Fatura total':'Total gasto'}</div>
+          <div class="fatura-total-val" style="color:${isCC?'var(--amber)':'var(--red)'}">${fmt(total)}</div>
+        </div>
+      </div>
+
+      ${destEntries.length?`
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px">
+        <div class="card-title">Distribuição por destino</div>
+        <div class="bar-wrap">
+          ${destEntries.map(e=>`
+          <div class="bar-row">
+            <div class="bar-label">${e.nome} <span style="color:var(--text-hint)">(${e.count}x)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(e.total/maxVal*100).toFixed(1)}%;background:${e.cor}"></div></div>
+            <div class="bar-val">${fmt(e.total)}</div>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div class="card-title">Detalhamento das compras</div>
+        ${ls.length ? ls.map(l=>{
+          const dest=state.destinos.find(d=>d.id===l.destino);
+          const dStr=new Date(l.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+          return `<div class="detail-row">
+            <span class="detail-date">${dStr}</span>
+            <span class="detail-desc">${l.desc}</span>
+            ${dest?`<span style="background:${dest.cor}22;color:${dest.cor};font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500;flex-shrink:0">${dest.nome}</span>`:''}
+            <span class="detail-val">${fmt(l.valor)}</span>
+            <button class="del-btn" onclick="delLancamento('${l.id}')">&#215;</button>
+          </div>`;
+        }).join('') : '<div class="empty">Nenhum lançamento nesta origem neste mês</div>'}
+        ${ls.length?`
+        <div class="detail-total-row">
+          <span>${ls.length} compra(s)</span>
+          <span style="color:${isCC?'var(--amber)':'var(--red)'}; font-family:'DM Mono',monospace">${fmt(total)}</span>
+        </div>`:''}
+      </div>
+    </div>`;
+}
+
+function renderOrigens(){
+  const el=document.getElementById('origens-list');
+  if(!state.origens.length){el.innerHTML='<div class="empty">Nenhuma origem cadastrada</div>';return;}
+  el.innerHTML=state.origens.map(o=>`
+    <div class="list-item">
+      <div class="orig-circle" style="background:${o.cor}22"><div class="dot" style="background:${o.cor}"></div></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${o.nome}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${TIPO_LABELS[o.tipo]||o.tipo}</div>
+      </div>
+      <button class="del-btn" onclick="delOrigem('${o.id}')">&#215;</button>
+    </div>`).join('');
+}
+
+function renderDestinos(){
+  const el=document.getElementById('destinos-list');
+  if(!state.destinos.length){el.innerHTML='<div class="empty">Nenhum destino cadastrado</div>';return;}
+  el.innerHTML=state.destinos.map(d=>`
+    <div class="list-item">
+      <div class="orig-circle" style="background:${d.cor}22"><div class="dot" style="background:${d.cor}"></div></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${d.nome}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${CAT_LABELS[d.cat]||d.cat}</div>
+      </div>
+      <button class="del-btn" onclick="delDestino('${d.id}')">&#215;</button>
+    </div>`).join('');
+}
+
+function renderAll(){
+  document.getElementById('month-label').textContent=MONTHS[curMonth]+' '+curYear;
+  populateSelects();
+  renderResumo();
+  renderLancamentos();
+  renderOrigens();
+  renderDestinos();
+  const relTab=document.getElementById('tab-relatorios');
+  if(relTab.classList.contains('active')) renderRelatorios();
+}
+
+document.getElementById('l-data').value=now.toISOString().split('T')[0];
+toggleOrigemField();
+</script>
+</body>
+</html>
