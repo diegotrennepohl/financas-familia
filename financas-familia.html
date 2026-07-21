@@ -78,6 +78,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .btn.pri:hover{opacity:.85}
 .btn.grn{background:var(--green);color:#fff;border-color:transparent}
 .btn.grn:hover{opacity:.85}
+.btn.grn{background:var(--green);color:#fff;border-color:transparent}
+.btn.grn:hover{opacity:.85}
 .btn.sm{padding:3px 9px;font-size:11px;border-radius:6px}
 
 /* PILLS */
@@ -143,6 +145,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <button class="tab" onclick="goTab('receitas')">Receitas</button>
   <button class="tab" onclick="goTab('despesas')">Despesas</button>
   <button class="tab" onclick="goTab('vencimentos')">Vencimentos</button>
+  <button class="tab" onclick="goTab('pesquisa')">🔍 Pesquisa</button>
   <button class="tab" onclick="goTab('rel-origem')">Rel. Origem</button>
   <button class="tab" onclick="goTab('rel-destino')">Rel. Destino</button>
   <button class="tab" onclick="goTab('origens')">Origens</button>
@@ -320,6 +323,57 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<!-- ══ PESQUISA ══ -->
+<div id="tab-pesquisa" class="screen">
+  <div class="card">
+    <div class="ctitle">Pesquisar lançamentos</div>
+    <div class="frow">
+      <div class="field" style="flex:2;min-width:150px">
+        <label>Palavra-chave</label>
+        <input id="p-texto" type="text" placeholder="Ex: mercado, nobreak, salário..." oninput="renderPesquisa()">
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="p-tipo" onchange="renderPesquisa()">
+          <option value="todos">Todos</option>
+          <option value="despesa">Despesas</option>
+          <option value="receita">Receitas</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="field">
+        <label>Origem</label>
+        <select id="p-origem" onchange="renderPesquisa()">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Destino</label>
+        <select id="p-destino" onchange="renderPesquisa()">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="p-status" onchange="renderPesquisa()">
+          <option value="">Todos</option>
+          <option value="apagar">A pagar</option>
+          <option value="pago">Pago</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="p-resumo" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>
+  <div class="card" style="padding-bottom:6px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="ctitle" style="margin-bottom:0">Resultados</div>
+      <span id="p-count" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div id="p-list"><div class="empty">Digite algo para pesquisar</div></div>
+  </div>
+</div>
+
 <!-- ══ REL ORIGEM ══ -->
 <div id="tab-rel-origem" class="screen">
   <div class="card">
@@ -448,12 +502,13 @@ onSnapshot(query(collection(db,'despesas')), s => { S.despesas=s.docs.map(d=>({i
 window.navMes = d => { curM+=d; if(curM>11){curM=0;curY++;} if(curM<0){curM=11;curY--;} renderAll(); };
 
 window.goTab = t => {
-  const tabs = ['resumo','resultado','receitas','despesas','vencimentos','rel-origem','rel-destino','origens','destinos'];
+  const tabs = ['resumo','resultado','receitas','despesas','vencimentos','pesquisa','rel-origem','rel-destino','origens','destinos'];
   document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', tabs[i]===t));
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
   if(t==='resultado') renderResultado();
   if(t==='vencimentos') renderVencimentos();
+  if(t==='pesquisa') renderPesquisa();
   if(t==='rel-origem') renderRelOrigem();
   if(t==='rel-destino') renderRelDestino();
 };
@@ -468,6 +523,7 @@ window.setFiltro = f => {
 };
 
 function populateSel() {
+  // Despesas form
   const lo=document.getElementById('l-origem'), lov=lo.value;
   lo.innerHTML='<option value="">— Selecione —</option>';
   S.origens.forEach(o=>{const op=document.createElement('option');op.value=o.id;op.textContent=o.nome;lo.appendChild(op);});
@@ -476,7 +532,27 @@ function populateSel() {
   ld.innerHTML='<option value="">— Selecione —</option>';
   S.destinos.forEach(d=>{const op=document.createElement('option');op.value=d.id;op.textContent=d.nome;ld.appendChild(op);});
   ld.value=ldv;
+  // Pesquisa selects
+  const po=document.getElementById('p-origem'), pov=po.value;
+  po.innerHTML='<option value="">Todas</option>';
+  S.origens.forEach(o=>{const op=document.createElement('option');op.value=o.id;op.textContent=o.nome;po.appendChild(op);});
+  po.value=pov;
+  const pd=document.getElementById('p-destino'), pdv=pd.value;
+  pd.innerHTML='<option value="">Todos</option>';
+  S.destinos.forEach(d=>{const op=document.createElement('option');op.value=d.id;op.textContent=d.nome;pd.appendChild(op);});
+  pd.value=pdv;
 }
+
+// Pagar toda a fatura de uma origem
+window.pagarFatura = async (origemId) => {
+  const desps = getDesps().filter(l => l.origem===origemId && (l.status==='apagar'));
+  if(!desps.length) return alert('Não há lançamentos a pagar nesta origem neste mês.');
+  const orig = S.origens.find(o=>o.id===origemId);
+  const tot = desps.reduce((s,l)=>s+l.valor,0);
+  if(!confirm(`Marcar ${desps.length} lançamento(s) de "${orig?.nome}" como PAGO?\nTotal: ${fmt(tot)}`)) return;
+  await Promise.all(desps.map(l => updateDoc(doc(db,'despesas',l.id), {status:'pago'})));
+  snack(`Fatura de ${orig?.nome} paga! (${desps.length} lançamentos)`);
+};
 
 // ── CRUD ──
 window.addReceita = async () => {
@@ -771,6 +847,90 @@ function renderVencimentos() {
     : '<div class="empty">Nenhuma conta com vencimento neste mês</div>';
 }
 
+// ── PESQUISA ──
+window.renderPesquisa = function() {
+  const texto = (document.getElementById('p-texto').value||'').toLowerCase().trim();
+  const tipo  = document.getElementById('p-tipo').value;
+  const orig  = document.getElementById('p-origem').value;
+  const dest  = document.getElementById('p-destino').value;
+  const stat  = document.getElementById('p-status').value;
+
+  // Monta lista combinada de todos os meses
+  let resultados = [];
+
+  if(tipo!=='receita') {
+    S.despesas
+      .filter(l => {
+        if(texto && !l.desc.toLowerCase().includes(texto)) return false;
+        if(orig && l.origem!==orig) return false;
+        if(dest && l.destino!==dest) return false;
+        if(stat && l.status!==stat) return false;
+        return true;
+      })
+      .forEach(l => resultados.push({...l, _t:'despesa'}));
+  }
+  if(tipo!=='despesa') {
+    S.receitas
+      .filter(l => {
+        if(texto && !l.desc.toLowerCase().includes(texto)) return false;
+        return true;
+      })
+      .forEach(l => resultados.push({...l, _t:'receita'}));
+  }
+
+  // Ordena por data decrescente
+  resultados.sort((a,b) => (b.venc||b.data).localeCompare(a.venc||a.data));
+
+  const totDesp = resultados.filter(l=>l._t==='despesa').reduce((s,l)=>s+l.valor,0);
+  const totRec  = resultados.filter(l=>l._t==='receita').reduce((s,l)=>s+l.valor,0);
+  const totAp   = resultados.filter(l=>l._t==='despesa'&&l.status==='apagar').reduce((s,l)=>s+l.valor,0);
+
+  // Mini resumo
+  const resumoEl = document.getElementById('p-resumo');
+  if(resultados.length) {
+    resumoEl.innerHTML = `
+      ${totRec>0?`<span style="background:var(--green-bg);color:var(--green);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600">Receitas: ${fmt(totRec)}</span>`:''}
+      ${totDesp>0?`<span style="background:var(--red-bg);color:var(--red);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600">Despesas: ${fmt(totDesp)}</span>`:''}
+      ${totAp>0?`<span style="background:var(--amber-bg);color:var(--amber);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600">A pagar: ${fmt(totAp)}</span>`:''}`;
+  } else {
+    resumoEl.innerHTML = '';
+  }
+
+  document.getElementById('p-count').textContent = resultados.length ? resultados.length+' resultado(s)' : '';
+
+  const listEl = document.getElementById('p-list');
+  if(!resultados.length) {
+    listEl.innerHTML = '<div class="empty">Nenhum resultado encontrado</div>';
+    return;
+  }
+
+  listEl.innerHTML = resultados.map(l => {
+    const isDes = l._t==='despesa';
+    const destO = isDes ? S.destinos.find(d=>d.id===l.destino) : null;
+    const origO = isDes ? S.origens.find(o=>o.id===l.origem) : null;
+    const st    = l.status||'apagar';
+    const vencida = isDes && st==='apagar' && isVencida(l.venc);
+    const mesAno  = (() => { const d=new Date((l.venc||l.data)+'T00:00:00'); return MONTHS[d.getMonth()]+' '+d.getFullYear(); })();
+    return `<div class="li">
+      <div style="width:4px;height:48px;border-radius:2px;flex-shrink:0;background:${!isDes?'var(--green)':st==='pago'?'var(--red)':vencida?'#a00':'var(--amber)'}"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500">${l.desc}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:3px">
+          ${tag(mesAno,'#7a7870')}
+          ${isDes&&l.venc?`<span class="tag" style="background:${vencida&&st==='apagar'?'#fde8e8':'#fdf3dc'};color:${vencida&&st==='apagar'?'#a00':'#9a6200'}">Venc: ${fmtDate(l.venc)}</span>`:''}
+          ${destO?tag(destO.nome,destO.cor):''}
+          ${origO?tag(origO.nome,origO.cor):''}
+        </div>
+        ${isDes?`<div style="margin-top:5px">${pill(l.id,st)}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        <div style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;color:${!isDes?'var(--green)':'var(--red)'}">${!isDes?'+':''}${fmt(l.valor)}</div>
+        ${isDes?`<button class="delbtn" onclick="delDespesa('${l.id}')">&#215;</button>`:`<button class="delbtn" onclick="delReceita('${l.id}')">&#215;</button>`}
+      </div>
+    </div>`;
+  }).join('');
+};
+
 // ── REL ORIGEM ──
 function renderRelOrigem() {
   const desps=getDesps();
@@ -805,6 +965,10 @@ function renderRelOrigem() {
       <div style="flex:1"><div style="font-size:15px;font-weight:600">${orig.nome}</div><div style="font-size:11px;color:var(--muted)">${TIPO[orig.tipo]||orig.tipo} · ${MONTHS[curM]} ${curY}</div></div>
       <div style="text-align:right"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">${isCC?'Fatura total':'Total gasto'}</div><div style="font-size:22px;font-weight:600;font-family:'DM Mono',monospace;color:${isCC?'var(--amber)':'var(--red)'}">${fmt(tot)}</div></div>
     </div>
+    ${totAp>0?`<div style="background:var(--green-bg);border:1px solid #b2d9c3;border-radius:var(--rs);padding:12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div><div style="font-size:11px;color:var(--green);font-weight:600">PAGAR FATURA COMPLETA</div><div style="font-size:13px;color:var(--green);margin-top:2px">${ls.filter(l=>l.status==='apagar').length} lançamento(s) · ${fmt(totAp)}</div></div>
+      <button class="btn grn" onclick="pagarFatura('${orig.id}')">✓ Pagar tudo</button>
+    </div>`:'<div style="background:var(--green-bg);border:1px solid #b2d9c3;border-radius:var(--rs);padding:10px;margin-bottom:14px;font-size:13px;color:var(--green);font-weight:500;text-align:center">✓ Fatura totalmente paga</div>'}
     <div class="rgrid" style="margin-bottom:14px">
       <div style="background:var(--green-bg);border:1px solid #b2d9c3;border-radius:var(--rs);padding:10px"><div style="font-size:10px;color:var(--green);font-weight:600;text-transform:uppercase;margin-bottom:3px">Pago</div><div style="font-size:16px;font-weight:600;font-family:'DM Mono',monospace;color:var(--green)">${fmt(totPago)}</div></div>
       <div style="background:var(--amber-bg);border:1px solid #e6c96a;border-radius:var(--rs);padding:10px"><div style="font-size:10px;color:var(--amber);font-weight:600;text-transform:uppercase;margin-bottom:3px">A pagar</div><div style="font-size:16px;font-weight:600;font-family:'DM Mono',monospace;color:var(--amber)">${fmt(totAp)}</div></div>
