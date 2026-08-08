@@ -1117,11 +1117,47 @@ window.addAReceber = async () => {
   snack('Lançado em "A Receber"!');
 };
 
-window.delAReceber = async id => { if(!confirm('Remover este registro?')) return; await deleteDoc(doc(db,'areceber',id)); };
+window.delAReceber = async id => {
+  const item = S.areceber.find(l=>l.id===id);
+  if(!confirm('Remover este registro?')) return;
+  // Se já foi recebido, remove também a receita gerada
+  if(item?.receitaId) await deleteDoc(doc(db,'receitas',item.receitaId));
+  await deleteDoc(doc(db,'areceber',id));
+};
 
 window.toggleAReceber = async (id, atual) => {
-  const novo = atual==='recebido' ? 'pendente' : 'recebido';
-  await updateDoc(doc(db,'areceber',id), {status: novo});
+  const item = S.areceber.find(l=>l.id===id);
+  if(!item) return;
+
+  if(atual === 'pendente') {
+    // Marcando como RECEBIDO → cria lançamento em receitas
+    const receitaId = 'ar_'+id;
+    const dataRecebimento = new Date().toISOString().split('T')[0];
+    await setDoc(doc(db,'receitas', receitaId), {
+      desc: item.desc + (item.devedor ? ' — ' + item.devedor : ''),
+      valor: item.valor,
+      data: dataRecebimento,
+      obs: 'Gerado automaticamente de "A Receber"',
+      origem: 'areceber'
+    });
+    await updateDoc(doc(db,'areceber',id), {
+      status: 'recebido',
+      receitaId,
+      dataRecebimento
+    });
+    snack('✓ Recebido! Lançado nas Receitas automaticamente.');
+  } else {
+    // Revertendo para PENDENTE → remove a receita gerada
+    if(item.receitaId) {
+      await deleteDoc(doc(db,'receitas', item.receitaId));
+    }
+    await updateDoc(doc(db,'areceber',id), {
+      status: 'pendente',
+      receitaId: null,
+      dataRecebimento: null
+    });
+    snack('Revertido para pendente. Receita removida.');
+  }
 };
 
 window.setFiltroAR = f => {
@@ -1176,9 +1212,10 @@ function renderAReceber() {
             </div>
             <div style="margin-top:5px">
               <button class="pill ${st==='recebido'?'pago':'apagar'}" onclick="toggleAReceber('${l.id}','${st}')" style="${st==='pendente'?'background:#f0ebfb;color:#6b3fa8':''}">
-                ${st==='recebido'?'✓ Recebido':'⏳ Pendente'}
+                ${st==='recebido'?'✓ Recebido — clique p/ reverter':'⏳ Pendente — clique p/ confirmar recebimento'}
               </button>
             </div>
+            ${st==='recebido'&&l.dataRecebimento?`<div style="font-size:11px;color:var(--green);margin-top:3px">Recebido em ${fmtDate(l.dataRecebimento)} · lançado nas receitas ✓</div>`:''}
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
             <div style="font-size:15px;font-weight:600;font-family:'DM Mono',monospace;color:${cor}">+${fmt(l.valor)}</div>
