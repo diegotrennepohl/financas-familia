@@ -261,13 +261,13 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
 .toggle-switch input:checked~.toggle-thumb{transform:translateX(22px)}
 
 /* ══ MODAL DE EDIÇÃO ══ */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;display:none;align-items:flex-end;justify-content:center}
 .modal-overlay.open{display:flex}
-.modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;padding:20px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;animation:slideUp .25s ease}
+.modal{background:var(--surface);border-radius:24px 24px 0 0;padding:20px 20px 32px;width:100%;max-width:430px;max-height:88vh;overflow-y:auto;animation:slideUp .25s ease}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-title{font-size:16px;font-weight:700;margin-bottom:4px}
 .modal-sub{font-size:12px;color:var(--text3);margin-bottom:18px}
-.modal-close{position:absolute;top:18px;right:18px;background:var(--bg);border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;color:var(--text2)}
+.modal-close{position:absolute;top:16px;right:16px;background:var(--bg);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center}
 .escopo-opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;transition:all .15s}
 .escopo-opt:hover{border-color:var(--brand);background:var(--blue-bg)}
 .escopo-opt.sel{border-color:var(--brand);background:var(--blue-bg)}
@@ -277,16 +277,13 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
 </style>
 </head>
 <body>
-<div id="app">
 
-<!-- ══ MODAL EDIÇÃO ══ -->
+<!-- ══ MODAL EDIÇÃO — fora do #app para position:fixed funcionar ══ -->
 <div class="modal-overlay" id="modal-overlay" onclick="fecharModal(event)">
   <div class="modal" style="position:relative">
     <button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-title">✏️ Editar lançamento</div>
     <div class="modal-sub" id="modal-sub"></div>
-
-    <!-- Campos de edição -->
     <div class="frow">
       <div class="field" style="flex:2;min-width:150px"><label>Descrição</label><input id="e-desc" type="text"></div>
       <div class="field"><label>Valor (R$)</label><input id="e-valor" type="number" min="0" step="0.01"></div>
@@ -304,8 +301,6 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
         </select>
       </div>
     </div>
-
-    <!-- Escopo (só aparece para lotes) -->
     <div id="modal-escopo" style="display:none;margin-top:6px">
       <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Aplicar alterações em:</div>
       <div class="escopo-opt sel" id="esc-este" onclick="selEscopo('este')">
@@ -314,20 +309,21 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
       </div>
       <div class="escopo-opt" id="esc-seguintes" onclick="selEscopo('seguintes')">
         <div class="escopo-opt-icon">📅</div>
-        <div><div class="escopo-opt-title">Este e os seguintes</div><div class="escopo-opt-sub" id="esc-seguintes-sub">Altera a partir desta parcela até o final</div></div>
+        <div><div class="escopo-opt-title">Este e os seguintes</div><div class="escopo-opt-sub" id="esc-seguintes-sub">Altera a partir desta parcela</div></div>
       </div>
       <div class="escopo-opt" id="esc-todos" onclick="selEscopo('todos')">
         <div class="escopo-opt-icon">📦</div>
-        <div><div class="escopo-opt-title">Todos do lote</div><div class="escopo-opt-sub" id="esc-todos-sub">Altera todos os lançamentos deste lote</div></div>
+        <div><div class="escopo-opt-title">Todos do lote</div><div class="escopo-opt-sub" id="esc-todos-sub">Altera todos os lançamentos</div></div>
       </div>
     </div>
-
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn" style="flex:1" onclick="closeModal()">Cancelar</button>
-      <button class="btn pri" style="flex:2" onclick="salvarEdicao()">✓ Salvar alterações</button>
+      <button class="btn pri" style="flex:2" onclick="salvarEdicao()">✓ Salvar</button>
     </div>
   </div>
 </div>
+
+<div id="app">
 <div class="app-header">
   <div class="app-header-inner">
     <div>
