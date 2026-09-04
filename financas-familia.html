@@ -250,15 +250,15 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
 .oc{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
 /* ══ TOGGLE SWITCH ══ */
-.toggle-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);margin-top:4px}
+.toggle-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--border);margin-top:8px}
 .toggle-label{font-size:13px;font-weight:600;color:var(--text);flex:1}
-.toggle-sub{font-size:11px;color:var(--text3);margin-top:1px}
-.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:24px;transition:.25s}
-.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.toggle input:checked+.toggle-slider{background:var(--red)}
-.toggle input:checked+.toggle-slider:before{transform:translateX(20px)}
+.toggle-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.toggle-switch{position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:var(--border2);border-radius:26px;transition:.25s;cursor:pointer}
+.toggle-thumb{position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.25);cursor:pointer}
+.toggle-switch input:checked~.toggle-track{background:var(--red)}
+.toggle-switch input:checked~.toggle-thumb{transform:translateX(22px)}
 
 /* ══ MODAL DE EDIÇÃO ══ */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-end;justify-content:center}
@@ -422,7 +422,7 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
       </div>
       <div class="frow">
         <div class="field"><label>Data do lançamento</label><input id="l-data" type="date"></div>
-        <div class="field"><label>⚠️ 1º Vencimento</label><input id="l-venc" type="date" class="venc" oninput="previewParcelas()"></div>
+        <div class="field"><label>⚠️ 1º Vencimento</label><input id="l-venc" type="date" class="venc" oninput="onTipoChange()"></div>
         <div class="field"><label>Status</label>
           <select id="l-status">
             <option value="apagar">A pagar</option>
@@ -449,14 +449,15 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
       </div>
       <!-- Toggle Despesa Fixa -->
       <div class="toggle-row">
-        <div>
+        <div style="flex:1">
           <div class="toggle-label">🔁 Despesa Fixa</div>
           <div class="toggle-sub">Lança automaticamente todo mês, sem data de fim</div>
         </div>
-        <label class="toggle">
+        <div class="toggle-switch" onclick="document.getElementById('l-fixa').click()">
           <input type="checkbox" id="l-fixa" onchange="onTipoChange()">
-          <span class="toggle-slider"></span>
-        </label>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
       </div>
       <div id="fixa-preview" style="display:none;background:var(--red-bg);border:1.5px solid var(--red-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--red);font-weight:500;margin-top:6px"></div>
       <div class="btn-row"><button class="btn pri" onclick="addDespesa()">+ Adicionar despesa</button></div>
