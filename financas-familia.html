@@ -249,14 +249,85 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
 /* ══ ORIGEM/DESTINO CIRCLE ══ */
 .oc{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
-/* ══ PAGO TOTAL ══ */
-.paid-banner{background:var(--green-bg);border:1.5px solid var(--green-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);text-align:center;margin-bottom:14px}
+/* ══ TOGGLE SWITCH ══ */
+.toggle-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);margin-top:4px}
+.toggle-label{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.toggle-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:24px;transition:.25s}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+.toggle-slider{background:var(--red)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(20px)}
+
+/* ══ MODAL DE EDIÇÃO ══ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;padding:20px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--text3);margin-bottom:18px}
+.modal-close{position:absolute;top:18px;right:18px;background:var(--bg);border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;color:var(--text2)}
+.escopo-opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;transition:all .15s}
+.escopo-opt:hover{border-color:var(--brand);background:var(--blue-bg)}
+.escopo-opt.sel{border-color:var(--brand);background:var(--blue-bg)}
+.escopo-opt-icon{font-size:22px;flex-shrink:0}
+.escopo-opt-title{font-size:13px;font-weight:600}
+.escopo-opt-sub{font-size:11px;color:var(--text3);margin-top:1px}
 </style>
 </head>
 <body>
 <div id="app">
 
-<!-- ══ HEADER ══ -->
+<!-- ══ MODAL EDIÇÃO ══ -->
+<div class="modal-overlay" id="modal-overlay" onclick="fecharModal(event)">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">✏️ Editar lançamento</div>
+    <div class="modal-sub" id="modal-sub"></div>
+
+    <!-- Campos de edição -->
+    <div class="frow">
+      <div class="field" style="flex:2;min-width:150px"><label>Descrição</label><input id="e-desc" type="text"></div>
+      <div class="field"><label>Valor (R$)</label><input id="e-valor" type="number" min="0" step="0.01"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Origem</label><select id="e-origem"><option value="">— Selecione —</option></select></div>
+      <div class="field"><label>Destino</label><select id="e-destino"><option value="">— Selecione —</option></select></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Vencimento</label><input id="e-venc" type="date" class="venc"></div>
+      <div class="field"><label>Status</label>
+        <select id="e-status">
+          <option value="apagar">A pagar</option>
+          <option value="pago">Pago</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Escopo (só aparece para lotes) -->
+    <div id="modal-escopo" style="display:none;margin-top:6px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Aplicar alterações em:</div>
+      <div class="escopo-opt sel" id="esc-este" onclick="selEscopo('este')">
+        <div class="escopo-opt-icon">📄</div>
+        <div><div class="escopo-opt-title">Somente este</div><div class="escopo-opt-sub">Altera apenas este lançamento</div></div>
+      </div>
+      <div class="escopo-opt" id="esc-seguintes" onclick="selEscopo('seguintes')">
+        <div class="escopo-opt-icon">📅</div>
+        <div><div class="escopo-opt-title">Este e os seguintes</div><div class="escopo-opt-sub" id="esc-seguintes-sub">Altera a partir desta parcela até o final</div></div>
+      </div>
+      <div class="escopo-opt" id="esc-todos" onclick="selEscopo('todos')">
+        <div class="escopo-opt-icon">📦</div>
+        <div><div class="escopo-opt-title">Todos do lote</div><div class="escopo-opt-sub" id="esc-todos-sub">Altera todos os lançamentos deste lote</div></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" style="flex:1" onclick="closeModal()">Cancelar</button>
+      <button class="btn pri" style="flex:2" onclick="salvarEdicao()">✓ Salvar alterações</button>
+    </div>
+  </div>
+</div>
 <div class="app-header">
   <div class="app-header-inner">
     <div>
@@ -362,7 +433,7 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
       <div class="frow">
         <div class="field" style="max-width:150px">
           <label>Parcelamento</label>
-          <select id="l-parcelas" onchange="previewParcelas()">
+          <select id="l-parcelas" onchange="onTipoChange()">
             <option value="1">À vista (1x)</option>
             <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
             <option value="5">5x</option><option value="6">6x</option><option value="7">7x</option>
@@ -376,6 +447,18 @@ body{font-family:'Inter',sans-serif;color:var(--text);overscroll-behavior:none}
           <div id="parcela-preview" style="font-size:12px;color:var(--text2);padding:10px 0;line-height:1.6"></div>
         </div>
       </div>
+      <!-- Toggle Despesa Fixa -->
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">🔁 Despesa Fixa</div>
+          <div class="toggle-sub">Lança automaticamente todo mês, sem data de fim</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="l-fixa" onchange="onTipoChange()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div id="fixa-preview" style="display:none;background:var(--red-bg);border:1.5px solid var(--red-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--red);font-weight:500;margin-top:6px"></div>
       <div class="btn-row"><button class="btn pri" onclick="addDespesa()">+ Adicionar despesa</button></div>
     </div>
     <!-- Filtros -->
@@ -772,6 +855,26 @@ window.addReceita=async()=>{
 };
 window.delReceita=async id=>{if(!confirm('Remover esta receita?'))return;await deleteDoc(doc(db,'receitas',id));};
 
+window.onTipoChange=()=>{
+  const fixa=document.getElementById('l-fixa').checked;
+  const parcelas=parseInt(document.getElementById('l-parcelas').value)||1;
+  const venc=document.getElementById('l-venc').value;
+  const valor=parseFloat(document.getElementById('l-valor').value)||0;
+  // Se fixa, desabilita parcelamento
+  document.getElementById('l-parcelas').disabled=fixa;
+  document.getElementById('l-parcelas').style.opacity=fixa?'0.4':'1';
+  // Preview fixa
+  const fixaEl=document.getElementById('fixa-preview');
+  if(fixa){
+    fixaEl.style.display='block';
+    fixaEl.innerHTML=`🔁 Esta despesa será lançada <strong>todo mês</strong> com vencimento no mesmo dia${venc?' (dia '+new Date(venc+'T00:00:00').getDate()+' de cada mês)':''}.`;
+    document.getElementById('parcela-preview').textContent='';
+    return;
+  }
+  fixaEl.style.display='none';
+  previewParcelas();
+};
+
 window.previewParcelas=()=>{
   const venc=document.getElementById('l-venc').value;
   const parcelas=parseInt(document.getElementById('l-parcelas').value)||1;
@@ -795,26 +898,89 @@ window.addDespesa=async()=>{
   const venc=document.getElementById('l-venc').value;
   const status=document.getElementById('l-status').value;
   const parcelas=parseInt(document.getElementById('l-parcelas').value)||1;
+  const fixa=document.getElementById('l-fixa').checked;
   if(!desc||!total||total<=0)return alert('Preencha descrição e valor.');
   if(!data)return alert('Informe a data do lançamento.');
   if(!venc)return alert('Informe a data do 1º vencimento.');
-  const valorParc=Math.round((total/parcelas)*100)/100;
-  const valorUlt=Math.round((total-valorParc*(parcelas-1))*100)/100;
-  const lote=Date.now().toString();
-  for(let i=0;i<parcelas;i++){
-    const d=new Date(venc+'T00:00:00');d.setMonth(d.getMonth()+i);
-    const vencParc=d.toISOString().split('T')[0];
-    const valorI=i===parcelas-1?valorUlt:valorParc;
-    const descParc=parcelas>1?`${desc} (${i+1}/${parcelas})`:desc;
-    await setDoc(doc(db,'despesas',(parseInt(lote)+i).toString()),{desc:descParc,valor:valorI,origem,destino,data,venc:vencParc,status,lote,parcela:i+1,totalParcelas:parcelas});
+  if(fixa&&parcelas>1)return alert('Despesa fixa deve ser à vista (1x).');
+
+  if(fixa){
+    // Lança nos 12 meses a partir do vencimento
+    const lote='fixa_'+Date.now().toString();
+    const diaVenc=new Date(venc+'T00:00:00').getDate();
+    for(let i=0;i<12;i++){
+      const d=new Date(venc+'T00:00:00');
+      d.setMonth(d.getMonth()+i);
+      // Garante o mesmo dia (ex: dia 31 em mês de 30 dias vai para último dia)
+      const lastDay=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+      d.setDate(Math.min(diaVenc,lastDay));
+      const vencI=d.toISOString().split('T')[0];
+      await setDoc(doc(db,'despesas',(parseInt(lote.replace('fixa_',''))+i).toString()),{
+        desc,valor:total,origem,destino,data,venc:vencI,status,
+        lote,tipoLote:'fixa',parcela:i+1,totalParcelas:12
+      });
+    }
+    snack('🔁 Despesa fixa lançada nos próximos 12 meses!');
+  } else {
+    // Parcelamento normal
+    const valorParc=Math.round((total/parcelas)*100)/100;
+    const valorUlt=Math.round((total-valorParc*(parcelas-1))*100)/100;
+    const lote=Date.now().toString();
+    for(let i=0;i<parcelas;i++){
+      const d=new Date(venc+'T00:00:00');d.setMonth(d.getMonth()+i);
+      const vencParc=d.toISOString().split('T')[0];
+      const valorI=i===parcelas-1?valorUlt:valorParc;
+      const descParc=parcelas>1?`${desc} (${i+1}/${parcelas})`:desc;
+      await setDoc(doc(db,'despesas',(parseInt(lote)+i).toString()),{
+        desc:descParc,valor:valorI,origem,destino,data,venc:vencParc,status,
+        lote:parcelas>1?lote:null,tipoLote:parcelas>1?'parcela':null,
+        parcela:parcelas>1?i+1:null,totalParcelas:parcelas>1?parcelas:null
+      });
+    }
+    snack(parcelas>1?`✅ ${parcelas} parcelas salvas!`:'✅ Despesa salva!');
   }
+
   document.getElementById('l-desc').value='';
   document.getElementById('l-valor').value='';
   document.getElementById('l-parcelas').value='1';
+  document.getElementById('l-fixa').checked=false;
   document.getElementById('parcela-preview').textContent='';
-  snack(parcelas>1?`✅ ${parcelas} parcelas salvas!`:'✅ Despesa salva!');
+  document.getElementById('fixa-preview').style.display='none';
+  document.getElementById('l-parcelas').disabled=false;
+  document.getElementById('l-parcelas').style.opacity='1';
 };
-window.delDespesa=async id=>{if(!confirm('Remover?'))return;await deleteDoc(doc(db,'despesas',id));};
+
+window.delDespesa=async id=>{
+  const item=S.despesas.find(l=>l.id===id);
+  if(!item)return;
+
+  // Verifica se tem lote (parcela ou fixa)
+  if(item.lote){
+    const tipo=item.tipoLote==='fixa'?'despesa fixa':'parcelamento';
+    const irmãos=S.despesas.filter(l=>l.lote===item.lote);
+    const naoPageos=irmãos.filter(l=>l.status==='apagar').length;
+
+    // Monta opções de exclusão
+    const opcao=window.confirm(
+      `Este lançamento faz parte de um ${tipo} com ${irmãos.length} parcela(s).\n\n` +
+      `OK = Excluir TODOS os ${irmãos.length} lançamentos deste ${tipo}\n` +
+      `Cancelar = Excluir somente este lançamento`
+    );
+
+    if(opcao===true){
+      // Exclui todos do lote
+      await Promise.all(irmãos.map(l=>deleteDoc(doc(db,'despesas',l.id))));
+      snack(`🗑️ ${irmãos.length} lançamentos excluídos.`);
+    } else {
+      // Exclui só este
+      await deleteDoc(doc(db,'despesas',id));
+      snack('🗑️ Lançamento excluído.');
+    }
+  } else {
+    if(!confirm('Remover esta despesa?'))return;
+    await deleteDoc(doc(db,'despesas',id));
+  }
+};
 window.toggleStatus=async(id,atual)=>{await updateDoc(doc(db,'despesas',id),{status:atual==='pago'?'apagar':'pago'});};
 
 window.addAReceber=async()=>{
@@ -891,6 +1057,8 @@ function liItem(l){
   const vencida=isDes&&st==='apagar'&&isVencida(l.venc);
   const cor=!isDes?'var(--green)':st==='pago'?'var(--red)':vencida?'#dc2626':'var(--amber)';
   const emoji=!isDes?'💰':st==='pago'?'✅':vencida?'🚨':'📋';
+  const loteTag=isDes&&l.tipoLote==='fixa'?`<span class="tag" style="background:#fff0f0;color:var(--red)">🔁 Fixa</span>`:
+                isDes&&l.tipoLote==='parcela'?`<span class="tag" style="background:#eff6ff;color:var(--brand)">${l.parcela}/${l.totalParcelas}</span>`:'';
   return `<div class="li">
     <div class="li-icon" style="background:${cor}18">${emoji}</div>
     <div style="flex:1;min-width:0">
@@ -898,6 +1066,7 @@ function liItem(l){
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
         ${tag(fmtDate(l.data),'#64748b')}
         ${isDes&&l.venc?`<span class="tag" style="background:${vencida&&st==='apagar'?'#fef2f2':'#fffbeb'};color:${vencida&&st==='apagar'?'#dc2626':'#d97706'}">Venc: ${fmtDate(l.venc)}${vencida&&st==='apagar'?' ⚠️':''}</span>`:''}
+        ${loteTag}
         ${dest?tag(dest.nome,dest.cor):''}${orig?tag(orig.nome,orig.cor):''}
       </div>
       ${isDes?`<div style="margin-top:6px">${pill(l.id,st)}</div>`:''}
@@ -979,13 +1148,17 @@ function renderDespesas(){
             <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
               ${tag(fmtDate(l.data),'#64748b')}
               ${l.venc?`<span class="tag" style="background:${vencida&&st==='apagar'?'#fef2f2':'#fffbeb'};color:${vencida&&st==='apagar'?'#dc2626':'#d97706'}">Venc: ${fmtDate(l.venc)}${vencida&&st==='apagar'?' ⚠️':''}</span>`:''}
+              ${l.tipoLote==='fixa'?`<span class="tag" style="background:#fff0f0;color:var(--red)">🔁 Fixa</span>`:l.tipoLote==='parcela'?`<span class="tag" style="background:#eff6ff;color:var(--brand)">${l.parcela}/${l.totalParcelas}</span>`:''}
               ${dest?tag(dest.nome,dest.cor):''}${orig?tag(orig.nome,orig.cor):''}
             </div>
             <div style="margin-top:6px">${pill(l.id,st)}</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
             <div style="font-size:14px;font-weight:700;color:${vencida&&st==='apagar'?'var(--red)':st==='pago'?'var(--text2)':'var(--red)'}">${fmt(l.valor)}</div>
-            <button class="delbtn" onclick="delDespesa('${l.id}')">✕</button>
+            <div style="display:flex;gap:4px">
+              <button class="delbtn" onclick="abrirEdicao('${l.id}')" style="font-size:14px" title="Editar">✏️</button>
+              <button class="delbtn" onclick="delDespesa('${l.id}')">✕</button>
+            </div>
           </div>
         </div>`;
       }).join('')
@@ -1295,6 +1468,143 @@ function renderAll(){
   if(act==='page-resultado') renderResultado();
   if(act==='page-relatorios') renderRelatorios();
 }
+
+// ══════════ EDIÇÃO DE LANÇAMENTO ══════════
+let editId = null;
+let editEscopo = 'este';
+
+function populateEditSelects(){
+  ['e-origem','e-destino'].forEach((sid,i)=>{
+    const el=document.getElementById(sid);
+    const items=i===0?S.origens:S.destinos;
+    const v=el.value;
+    el.innerHTML='<option value="">— Selecione —</option>';
+    items.forEach(o=>{const op=document.createElement('option');op.value=o.id;op.textContent=o.nome;el.appendChild(op);});
+    el.value=v;
+  });
+}
+
+window.abrirEdicao = id => {
+  const l = S.despesas.find(d=>d.id===id);
+  if(!l) return;
+  editId = id;
+  editEscopo = 'este';
+
+  // Preenche campos
+  document.getElementById('e-desc').value = l.desc||'';
+  document.getElementById('e-valor').value = l.valor||'';
+  document.getElementById('e-venc').value = l.venc||l.data||'';
+  document.getElementById('e-status').value = l.status||'apagar';
+  populateEditSelects();
+  document.getElementById('e-origem').value = l.origem||'';
+  document.getElementById('e-destino').value = l.destino||'';
+
+  // Sub-título
+  const tipoLabel = l.tipoLote==='fixa'?'🔁 Despesa Fixa':l.tipoLote==='parcela'?`Parcela ${l.parcela}/${l.totalParcelas}`:'Despesa avulsa';
+  document.getElementById('modal-sub').textContent = tipoLabel + ' · ' + fmtDate(l.venc||l.data);
+
+  // Mostrar/ocultar opções de escopo
+  const temLote = !!l.lote;
+  document.getElementById('modal-escopo').style.display = temLote ? 'block' : 'none';
+
+  if(temLote){
+    const irmãos = S.despesas.filter(d=>d.lote===l.lote).sort((a,b)=>(a.venc||a.data).localeCompare(b.venc||b.data));
+    const seguintes = irmãos.filter(d=>(d.venc||d.data)>=(l.venc||l.data));
+    document.getElementById('esc-seguintes-sub').textContent = `Altera ${seguintes.length} lançamento(s) a partir deste`;
+    document.getElementById('esc-todos-sub').textContent = `Altera todos os ${irmãos.length} lançamento(s) do lote`;
+    selEscopo('este');
+  }
+
+  document.getElementById('modal-overlay').classList.add('open');
+};
+
+window.selEscopo = escopo => {
+  editEscopo = escopo;
+  ['este','seguintes','todos'].forEach(e=>{
+    document.getElementById('esc-'+e).classList.toggle('sel', e===escopo);
+  });
+};
+
+window.fecharModal = e => {
+  if(e.target===document.getElementById('modal-overlay')) closeModal();
+};
+window.closeModal = () => {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editId = null;
+};
+
+window.salvarEdicao = async () => {
+  const l = S.despesas.find(d=>d.id===editId);
+  if(!l) return closeModal();
+
+  const novosDados = {
+    desc: document.getElementById('e-desc').value.trim(),
+    valor: parseFloat(document.getElementById('e-valor').value),
+    origem: document.getElementById('e-origem').value,
+    destino: document.getElementById('e-destino').value,
+    venc: document.getElementById('e-venc').value,
+    status: document.getElementById('e-status').value,
+  };
+
+  if(!novosDados.desc||!novosDados.valor||novosDados.valor<=0) return alert('Preencha descrição e valor.');
+  if(!novosDados.venc) return alert('Informe o vencimento.');
+
+  if(!l.lote || editEscopo==='este'){
+    // Altera só este
+    await updateDoc(doc(db,'despesas',editId), novosDados);
+    snack('✅ Lançamento atualizado!');
+
+  } else if(editEscopo==='seguintes'){
+    // Altera este e os seguintes do mesmo lote
+    const dataRef = l.venc||l.data;
+    const irmãos = S.despesas
+      .filter(d=>d.lote===l.lote && (d.venc||d.data)>=dataRef)
+      .sort((a,b)=>(a.venc||a.data).localeCompare(b.venc||b.data));
+
+    // Recalcula vencimentos a partir do novo venc, mantendo o intervalo mensal
+    const diaVenc = new Date(novosDados.venc+'T00:00:00').getDate();
+    await Promise.all(irmãos.map((d,i)=>{
+      const dt = new Date(novosDados.venc+'T00:00:00');
+      dt.setMonth(dt.getMonth()+i);
+      const lastDay = new Date(dt.getFullYear(),dt.getMonth()+1,0).getDate();
+      dt.setDate(Math.min(diaVenc,lastDay));
+      return updateDoc(doc(db,'despesas',d.id), {
+        ...novosDados,
+        venc: dt.toISOString().split('T')[0],
+        // Mantém desc original com numeração se parcela
+        desc: d.tipoLote==='parcela' ? novosDados.desc.replace(/ \(\d+\/\d+\)$/,'')+` (${d.parcela}/${d.totalParcelas})` : novosDados.desc,
+      });
+    }));
+    snack(`✅ ${irmãos.length} lançamento(s) atualizado(s)!`);
+
+  } else if(editEscopo==='todos'){
+    // Altera todos do lote, recalculando vencimentos do início
+    const irmãos = S.despesas
+      .filter(d=>d.lote===l.lote)
+      .sort((a,b)=>(a.venc||a.data).localeCompare(b.venc||b.data));
+
+    // Referência: primeiro vencimento do lote + novo offset
+    const primeiroVenc = irmãos[0].venc||irmãos[0].data;
+    const offsetMeses = (new Date(novosDados.venc+'T00:00:00').getFullYear()-new Date(primeiroVenc+'T00:00:00').getFullYear())*12
+      + new Date(novosDados.venc+'T00:00:00').getMonth()-new Date(primeiroVenc+'T00:00:00').getMonth();
+    const diaVenc = new Date(novosDados.venc+'T00:00:00').getDate();
+
+    await Promise.all(irmãos.map((d,i)=>{
+      const dt = new Date(primeiroVenc+'T00:00:00');
+      dt.setMonth(dt.getMonth()+i+offsetMeses);
+      const lastDay = new Date(dt.getFullYear(),dt.getMonth()+1,0).getDate();
+      dt.setDate(Math.min(diaVenc,lastDay));
+      return updateDoc(doc(db,'despesas',d.id), {
+        ...novosDados,
+        venc: dt.toISOString().split('T')[0],
+        desc: d.tipoLote==='parcela' ? novosDados.desc.replace(/ \(\d+\/\d+\)$/,'')+` (${d.parcela}/${d.totalParcelas})` : novosDados.desc,
+      });
+    }));
+    snack(`✅ Todos os ${irmãos.length} lançamento(s) atualizados!`);
+  }
+
+  closeModal();
+};
 
 // ── PWA INSTALL ──
 let deferredPrompt = null;
